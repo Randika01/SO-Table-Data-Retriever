@@ -1,0 +1,602 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Sales Order Lookup</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:          #f5f6f8;
+      --surface:     #ffffff;
+      --border:      #e4e7ec;
+      --border-focus:#2563eb;
+      --text-primary:#111827;
+      --text-muted:  #6b7280;
+      --text-light:  #9ca3af;
+      --accent:      #2563eb;
+      --accent-hover:#1d4ed8;
+      --accent-light:#eff6ff;
+      --success:     #059669;
+      --warning:     #d97706;
+      --danger:      #dc2626;
+      --shadow-sm:   0 1px 3px rgba(0,0,0,.06), 0 1px 2px rgba(0,0,0,.04);
+      --shadow-md:   0 4px 16px rgba(0,0,0,.08);
+      --radius:      10px;
+    }
+
+    body {
+      font-family: 'DM Sans', sans-serif;
+      background: var(--bg);
+      color: var(--text-primary);
+      min-height: 100vh;
+    }
+
+    /* ── TOP NAV ──────────────────────────────────────────── */
+    header {
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      position: sticky; top: 0; z-index: 100;
+    }
+    .nav-inner {
+      max-width: 1100px; margin: 0 auto;
+      padding: 0 24px;
+      height: 60px;
+      display: flex; align-items: center; justify-content: space-between;
+    }
+    .logo {
+      display: flex; align-items: center; gap: 10px;
+      font-weight: 600; font-size: 16px; color: var(--text-primary);
+      text-decoration: none;
+    }
+    .logo-icon {
+      width: 32px; height: 32px; border-radius: 8px;
+      background: var(--accent); display: flex; align-items: center; justify-content: center;
+    }
+    .logo-icon svg { color: #fff; }
+    .nav-badge {
+      font-size: 11px; font-weight: 500;
+      background: var(--accent-light); color: var(--accent);
+      padding: 2px 8px; border-radius: 20px;
+    }
+
+    /* ── MAIN ────────────────────────────────────────────── */
+    main {
+      max-width: 1100px; margin: 0 auto;
+      padding: 40px 24px;
+    }
+
+    .page-title { font-size: 22px; font-weight: 600; margin-bottom: 4px; }
+    .page-sub   { font-size: 14px; color: var(--text-muted); margin-bottom: 28px; }
+
+    /* ── SEARCH CARD ─────────────────────────────────────── */
+    .search-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 24px;
+      box-shadow: var(--shadow-sm);
+      margin-bottom: 28px;
+    }
+
+    .search-row {
+      display: flex; gap: 10px; flex-wrap: wrap;
+    }
+
+    .tab-row {
+      display: flex; gap: 0; margin-bottom: 18px;
+      border: 1px solid var(--border); border-radius: 8px;
+      overflow: hidden; width: fit-content;
+    }
+    .tab {
+      padding: 8px 18px; font-size: 13px; font-weight: 500;
+      background: none; border: none; cursor: pointer;
+      color: var(--text-muted); transition: all .18s;
+      border-right: 1px solid var(--border);
+    }
+    .tab:last-child { border-right: none; }
+    .tab.active { background: var(--accent); color: #fff; }
+    .tab:hover:not(.active) { background: var(--bg); color: var(--text-primary); }
+
+    .search-input-wrap {
+      flex: 1; min-width: 220px; position: relative;
+    }
+    .search-icon {
+      position: absolute; left: 13px; top: 50%; transform: translateY(-50%);
+      color: var(--text-light); pointer-events: none;
+    }
+    input[type="text"] {
+      width: 100%; padding: 10px 14px 10px 40px;
+      border: 1px solid var(--border);
+      border-radius: 8px; font-size: 14px;
+      font-family: 'DM Sans', sans-serif;
+      color: var(--text-primary); background: var(--surface);
+      transition: border-color .18s, box-shadow .18s;
+      outline: none;
+    }
+    input[type="text"]:focus {
+      border-color: var(--border-focus);
+      box-shadow: 0 0 0 3px rgba(37,99,235,.12);
+    }
+    input[type="text"]::placeholder { color: var(--text-light); }
+
+    .btn-search {
+      padding: 10px 24px; border-radius: 8px;
+      background: var(--accent); color: #fff;
+      border: none; font-size: 14px; font-weight: 500;
+      font-family: 'DM Sans', sans-serif;
+      cursor: pointer; transition: background .18s;
+      display: flex; align-items: center; gap: 7px; white-space: nowrap;
+    }
+    .btn-search:hover  { background: var(--accent-hover); }
+    .btn-search:active { transform: scale(.98); }
+    .btn-search:disabled { opacity: .55; cursor: not-allowed; }
+
+    /* ── STATE BLOCKS ─────────────────────────────────────── */
+    .state-block {
+      text-align: center; padding: 60px 20px;
+      color: var(--text-muted); font-size: 14px;
+    }
+    .state-block svg { margin-bottom: 12px; color: var(--text-light); }
+    .state-block p { margin-top: 6px; }
+
+    .spinner {
+      width: 32px; height: 32px; margin: 0 auto 14px;
+      border: 3px solid var(--border);
+      border-top-color: var(--accent);
+      border-radius: 50%; animation: spin .7s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    .error-banner {
+      background: #fef2f2; border: 1px solid #fecaca;
+      color: #991b1b; border-radius: 8px;
+      padding: 14px 18px; font-size: 13.5px; margin-bottom: 20px;
+      display: flex; align-items: flex-start; gap: 10px;
+    }
+
+    /* ── RESULTS SUMMARY ─────────────────────────────────── */
+    .results-meta {
+      font-size: 13px; color: var(--text-muted);
+      margin-bottom: 14px; padding: 0 2px;
+    }
+    .results-meta strong { color: var(--text-primary); }
+
+    /* ── TABLE ───────────────────────────────────────────── */
+    .table-wrap {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      overflow: hidden;
+      box-shadow: var(--shadow-sm);
+    }
+    .tbl-scroll { overflow-x: auto; }
+
+    table {
+      width: 100%; border-collapse: collapse;
+      font-size: 13.5px;
+    }
+    thead tr {
+      background: var(--bg);
+      border-bottom: 1px solid var(--border);
+    }
+    th {
+      padding: 11px 16px; text-align: left;
+      font-weight: 600; font-size: 11.5px;
+      text-transform: uppercase; letter-spacing: .06em;
+      color: var(--text-muted); white-space: nowrap;
+    }
+    tbody tr {
+      border-bottom: 1px solid var(--border);
+      transition: background .12s;
+    }
+    tbody tr:last-child { border-bottom: none; }
+    tbody tr:hover { background: #fafbfc; cursor: pointer; }
+
+    td {
+      padding: 13px 16px; color: var(--text-primary);
+      vertical-align: middle;
+    }
+    td.mono {
+      font-family: 'DM Mono', monospace; font-size: 12.5px;
+      color: var(--accent);
+    }
+    td .text-muted { color: var(--text-muted); font-size: 12px; }
+
+    .badge {
+      display: inline-block; padding: 3px 9px; border-radius: 20px;
+      font-size: 11.5px; font-weight: 500; white-space: nowrap;
+    }
+    .badge-active   { background: #d1fae5; color: #065f46; }
+    .badge-closed   { background: #f3f4f6; color: #374151; }
+    .badge-canceled { background: #fee2e2; color: #991b1b; }
+    .badge-draft    { background: #fef3c7; color: #92400e; }
+
+    /* ── DETAIL PANEL (slide-in) ─────────────────────────── */
+    .overlay {
+      position: fixed; inset: 0; background: rgba(0,0,0,.25);
+      z-index: 200; opacity: 0; pointer-events: none; transition: opacity .25s;
+    }
+    .overlay.open { opacity: 1; pointer-events: all; }
+
+    .detail-panel {
+      position: fixed; top: 0; right: 0; bottom: 0; width: 440px; max-width: 94vw;
+      background: var(--surface); z-index: 300;
+      transform: translateX(100%); transition: transform .28s cubic-bezier(.4,0,.2,1);
+      display: flex; flex-direction: column;
+      box-shadow: -8px 0 32px rgba(0,0,0,.1);
+    }
+    .detail-panel.open { transform: translateX(0); }
+
+    .panel-header {
+      padding: 20px 24px; border-bottom: 1px solid var(--border);
+      display: flex; align-items: center; justify-content: space-between;
+    }
+    .panel-title { font-size: 16px; font-weight: 600; }
+    .btn-close {
+      width: 32px; height: 32px; border-radius: 7px;
+      border: 1px solid var(--border); background: none;
+      cursor: pointer; display: flex; align-items: center; justify-content: center;
+      color: var(--text-muted); transition: all .15s;
+    }
+    .btn-close:hover { background: var(--bg); color: var(--text-primary); }
+
+    .panel-body { flex: 1; overflow-y: auto; padding: 24px; }
+
+    .detail-section { margin-bottom: 24px; }
+    .detail-section-title {
+      font-size: 10.5px; font-weight: 600; letter-spacing: .08em;
+      text-transform: uppercase; color: var(--text-light);
+      margin-bottom: 14px;
+    }
+    .detail-grid {
+      display: grid; grid-template-columns: 1fr 1fr; gap: 14px;
+    }
+    .detail-item {}
+    .detail-item label {
+      display: block; font-size: 11px; color: var(--text-muted);
+      font-weight: 500; margin-bottom: 3px;
+    }
+    .detail-item span {
+      font-size: 14px; color: var(--text-primary); font-weight: 500;
+    }
+    .detail-item.full { grid-column: 1 / -1; }
+    .detail-item span.mono {
+      font-family: 'DM Mono', monospace; font-size: 13px; color: var(--accent);
+    }
+
+    /* ── FOOTER ──────────────────────────────────────────── */
+    footer {
+      text-align: center; padding: 28px;
+      font-size: 12px; color: var(--text-light);
+      border-top: 1px solid var(--border);
+      margin-top: 40px;
+    }
+
+    @media (max-width: 640px) {
+      .tab { padding: 7px 12px; font-size: 12px; }
+      th, td { padding: 10px 12px; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- NAV -->
+<header>
+  <div class="nav-inner">
+    <a class="logo" href="#">
+      <div class="logo-icon">
+        <svg width="17" height="17" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24">
+          <path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2"/>
+          <rect x="9" y="3" width="6" height="4" rx="1"/>
+          <path d="M9 12h6M9 16h4"/>
+        </svg>
+      </div>
+      Sales Order Lookup
+    </a>
+    <span class="nav-badge">Dataverse</span>
+  </div>
+</header>
+
+<!-- MAIN -->
+<main>
+  <h1 class="page-title">Sales Orders</h1>
+  <p class="page-sub">Search and view sales orders from Microsoft Dataverse.</p>
+
+  <!-- SEARCH CARD -->
+  <div class="search-card">
+    <div class="tab-row" id="tabs">
+      <button class="tab active" data-by="name">Order Number</button>
+      <button class="tab" data-by="external">External Document</button>
+      <button class="tab" data-by="reference">Your Reference</button>
+    </div>
+    <div class="search-row">
+      <div class="search-input-wrap">
+        <span class="search-icon">
+          <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
+          </svg>
+        </span>
+        <input type="text" id="searchInput" placeholder="Type to search…" autocomplete="off"/>
+      </div>
+      <button class="btn-search" id="searchBtn" onclick="doSearch()">
+        <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24">
+          <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
+        </svg>
+        Search
+      </button>
+    </div>
+  </div>
+
+  <!-- ERROR -->
+  <div class="error-banner" id="errorBanner" style="display:none">
+    <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" style="flex-shrink:0;margin-top:1px">
+      <circle cx="12" cy="12" r="10"/><path d="M12 8v4M12 16h.01"/>
+    </svg>
+    <span id="errorText"></span>
+  </div>
+
+  <!-- RESULTS -->
+  <div id="resultsMeta" class="results-meta" style="display:none"></div>
+  <div id="resultsArea">
+    <!-- initial empty state -->
+    <div class="state-block" id="emptyState">
+      <svg width="40" height="40" fill="none" stroke="currentColor" stroke-width="1.4" viewBox="0 0 24 24">
+        <path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2"/>
+        <rect x="9" y="3" width="6" height="4" rx="1"/><path d="M9 12h6M9 16h4"/>
+      </svg>
+      <strong>Search sales orders</strong>
+      <p>Enter a value above and click Search.</p>
+    </div>
+  </div>
+</main>
+
+<footer>© 2025 Sales Order Lookup · Powered by Microsoft Dataverse</footer>
+
+<!-- OVERLAY + DETAIL PANEL -->
+<div class="overlay" id="overlay" onclick="closePanel()"></div>
+<div class="detail-panel" id="detailPanel">
+  <div class="panel-header">
+    <span class="panel-title" id="panelTitle">Order Details</span>
+    <button class="btn-close" onclick="closePanel()">
+      <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24">
+        <path d="M18 6 6 18M6 6l12 12"/>
+      </svg>
+    </button>
+  </div>
+  <div class="panel-body" id="panelBody"></div>
+</div>
+
+<script>
+  const API = "http://localhost:5000";   // change if backend runs elsewhere
+  let activeBy = "name";
+
+  // ── Tabs ──────────────────────────────────────────────────────────────────
+  document.querySelectorAll('.tab').forEach(tab => {
+    tab.addEventListener('click', () => {
+      document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+      tab.classList.add('active');
+      activeBy = tab.dataset.by;
+      const placeholders = {
+        name:      "e.g. SO-00123 or order name…",
+        external:  "External document number…",
+        reference: "Your reference number…",
+      };
+      document.getElementById('searchInput').placeholder = placeholders[activeBy];
+    });
+  });
+
+  // ── Enter key ─────────────────────────────────────────────────────────────
+  document.getElementById('searchInput').addEventListener('keydown', e => {
+    if (e.key === 'Enter') doSearch();
+  });
+
+  // ── Search ────────────────────────────────────────────────────────────────
+  async function doSearch() {
+    const q = document.getElementById('searchInput').value.trim();
+    if (!q) { showError("Please enter a search term."); return; }
+
+    hideError();
+    setLoading(true);
+
+    try {
+      const resp = await fetch(`${API}/api/search?q=${encodeURIComponent(q)}&by=${activeBy}`);
+      const json = await resp.json();
+      if (!resp.ok) throw new Error(json.error || "Request failed");
+      renderResults(json.data, json.count);
+    } catch (err) {
+      showError(err.message);
+      setLoading(false);
+    }
+  }
+
+  // ── Render table ──────────────────────────────────────────────────────────
+  function renderResults(rows, count) {
+    setLoading(false);
+    const area = document.getElementById('resultsArea');
+    const meta = document.getElementById('resultsMeta');
+
+    if (!rows || rows.length === 0) {
+      meta.style.display = 'none';
+      area.innerHTML = `
+        <div class="state-block">
+          <svg width="38" height="38" fill="none" stroke="currentColor" stroke-width="1.4" viewBox="0 0 24 24">
+            <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
+          </svg>
+          <strong>No results found</strong>
+          <p>Try a different keyword or search type.</p>
+        </div>`;
+      return;
+    }
+
+    meta.style.display = 'block';
+    meta.innerHTML = `Showing <strong>${count}</strong> result${count !== 1 ? 's' : ''}`;
+
+    const tbodyRows = rows.map(r => {
+      const statusClass = statusBadgeClass(r.cr399_cr1e1_status);
+      const amount      = formatAmount(r.cr399_cr1e1_totalinclvataud);
+      const date        = r.cr399_cr1e1_orderdate ? new Date(r.cr399_cr1e1_orderdate).toLocaleDateString('en-GB', {day:'2-digit',month:'short',year:'numeric'}) : '—';
+      const uid         = r.cr399_cr1e1_0003ausalesordersid;
+      return `
+        <tr onclick="openPanel('${uid}')">
+          <td class="mono">${esc(r.cr399_cr1e1_no || '—')}</td>
+          <td>${esc(r.cr399_cr1e1_customername || '—')}</td>
+          <td>${esc(r.cr399_cr1e1_externaldocumentno || '—')}</td>
+          <td>${esc(r.cr399_cr1e1_yourreference || '—')}</td>
+          <td>${amount}</td>
+          <td>${date}</td>
+          <td><span class="badge ${statusClass}">${esc(r.cr399_cr1e1_status || '—')}</span></td>
+        </tr>`;
+    }).join('');
+
+    area.innerHTML = `
+      <div class="table-wrap">
+        <div class="tbl-scroll">
+          <table>
+            <thead><tr>
+              <th>Order #</th>
+              <th>Customer</th>
+              <th>Ext. Document</th>
+              <th>Your Reference</th>
+              <th>Amount</th>
+              <th>Created</th>
+              <th>Status</th>
+            </tr></thead>
+            <tbody>${tbodyRows}</tbody>
+          </table>
+        </div>
+      </div>`;
+
+    // store row data for quick panel access
+    window._rowData = {};
+    rows.forEach(r => { window._rowData[r.cr399_cr1e1_0003ausalesordersid] = r; });
+  }
+
+  // ── Detail Panel ──────────────────────────────────────────────────────────
+  function openPanel(id) {
+    const r = window._rowData?.[id];
+    if (!r) return;
+
+    const statusClass = statusBadgeClass(r.cr399_cr1e1_status);
+    const orderDate   = r.cr399_cr1e1_orderdate   ? new Date(r.cr399_cr1e1_orderdate).toLocaleDateString('en-GB',{dateStyle:'medium'})   : '—';
+    const shipDate    = r.cr399_cr1e1_starshipitshipmentdate ? new Date(r.cr399_cr1e1_starshipitshipmentdate).toLocaleDateString('en-GB',{dateStyle:'medium'}) : '—';
+    const amount      = formatAmount(r.cr399_cr1e1_totalinclvataud);
+    const vat         = formatAmount(r.cr399_cr1e1_totalvataud);
+    const unitPrice   = formatAmount(r.cr399_cr1e1_unitpriceincvat);
+
+    document.getElementById('panelTitle').textContent = r.cr399_cr1e1_no || 'Order Details';
+    document.getElementById('panelBody').innerHTML = `
+      <div class="detail-section">
+        <div class="detail-section-title">Order Information</div>
+        <div class="detail-grid">
+          <div class="detail-item"><label>Order No</label><span class="mono">${esc(r.cr399_cr1e1_no || '—')}</span></div>
+          <div class="detail-item"><label>Status</label><span><span class="badge ${statusClass}">${esc(r.cr399_cr1e1_status || '—')}</span></span></div>
+          <div class="detail-item"><label>Order Date</label><span>${orderDate}</span></div>
+          <div class="detail-item"><label>Type</label><span>${esc(r.cr399_cr1e1_type || '—')}</span></div>
+          <div class="detail-item"><label>Item No</label><span>${esc(r.cr399_cr1e1_itemno || '—')}</span></div>
+          <div class="detail-item"><label>Quantity</label><span>${esc(r.cr399_cr1e1_quantity ?? '—')}</span></div>
+          <div class="detail-item"><label>Unit Price Incl. VAT</label><span>${unitPrice}</span></div>
+          <div class="detail-item"><label>Total Incl. VAT</label><span>${amount}</span></div>
+          <div class="detail-item"><label>Total VAT</label><span>${vat}</span></div>
+          <div class="detail-item"><label>Invoice No</label><span>${esc(r.cr399_cr1e1_saleinvoiceno || '—')}</span></div>
+          <div class="detail-item"><label>Salesperson</label><span>${esc(r.cr399_cr1e1_salespersoncode || '—')}</span></div>
+          <div class="detail-item"><label>Location Code</label><span>${esc(r.cr399_cr1e1_locationcode || '—')}</span></div>
+          <div class="detail-item"><label>Bin Code</label><span>${esc(r.cr399_cr1e1_bincode || '—')}</span></div>
+        </div>
+      </div>
+
+      <div class="detail-section">
+        <div class="detail-section-title">Customer</div>
+        <div class="detail-grid">
+          <div class="detail-item"><label>Customer No</label><span>${esc(r.cr399_cr1e1_customerno || '—')}</span></div>
+          <div class="detail-item"><label>Customer Name</label><span>${esc(r.cr399_cr1e1_customername || '—')}</span></div>
+        </div>
+      </div>
+
+      <div class="detail-section">
+        <div class="detail-section-title">References</div>
+        <div class="detail-grid">
+          <div class="detail-item"><label>External Document No</label><span>${esc(r.cr399_cr1e1_externaldocumentno || '—')}</span></div>
+          <div class="detail-item"><label>Your Reference</label><span>${esc(r.cr399_cr1e1_yourreference || '—')}</span></div>
+        </div>
+      </div>
+
+      <div class="detail-section">
+        <div class="detail-section-title">Shipping</div>
+        <div class="detail-grid">
+          <div class="detail-item full"><label>Ship-to Name</label><span>${esc(r.cr399_cr1e1_shiptoname || '—')}</span></div>
+          <div class="detail-item full"><label>Address</label><span>${esc(r.cr399_cr1e1_shiptoaddress || '—')}${r.cr399_cr1e1_shiptoaddress2 ? ', ' + esc(r.cr399_cr1e1_shiptoaddress2) : ''}</span></div>
+          <div class="detail-item"><label>City</label><span>${esc(r.cr399_cr1e1_shiptocity || '—')}</span></div>
+          <div class="detail-item"><label>Post Code</label><span>${esc(r.cr399_cr1e1_shiptopostcode || '—')}</span></div>
+          <div class="detail-item"><label>Country</label><span>${esc(r.cr399_cr1e1_shiptocountry || '—')}</span></div>
+          <div class="detail-item"><label>Country/Region</label><span>${esc(r.cr399_cr1e1_shiptocountryregion || '—')}</span></div>
+          <div class="detail-item"><label>Phone No</label><span>${esc(r.cr399_cr1e1_shiptophoneno || '—')}</span></div>
+          <div class="detail-item"><label>Shipment Date</label><span>${shipDate}</span></div>
+        </div>
+      </div>
+
+      <div class="detail-section">
+        <div class="detail-section-title">Carrier & Tracking</div>
+        <div class="detail-grid">
+          <div class="detail-item"><label>Carrier Name</label><span>${esc(r.cr399_cr1e1_carriername || '—')}</span></div>
+          <div class="detail-item"><label>Carrier Service</label><span>${esc(r.cr399_cr1e1_carrierservice || '—')}</span></div>
+          <div class="detail-item full"><label>Tracking Number</label><span class="mono">${esc(r.cr399_cr1e1_trackingnumber || '—')}</span></div>
+        </div>
+      </div>
+    `;
+
+    document.getElementById('overlay').classList.add('open');
+    document.getElementById('detailPanel').classList.add('open');
+  }
+
+  function closePanel() {
+    document.getElementById('overlay').classList.remove('open');
+    document.getElementById('detailPanel').classList.remove('open');
+  }
+
+  // ── Helpers ───────────────────────────────────────────────────────────────
+  function setLoading(on) {
+    const btn  = document.getElementById('searchBtn');
+    const area = document.getElementById('resultsArea');
+    const meta = document.getElementById('resultsMeta');
+    btn.disabled = on;
+    if (on) {
+      meta.style.display = 'none';
+      area.innerHTML = `<div class="state-block"><div class="spinner"></div><p>Fetching results…</p></div>`;
+    }
+  }
+
+  function showError(msg) {
+    const b = document.getElementById('errorBanner');
+    document.getElementById('errorText').textContent = msg;
+    b.style.display = 'flex';
+  }
+  function hideError() {
+    document.getElementById('errorBanner').style.display = 'none';
+  }
+
+  function esc(s) {
+    return String(s ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  }
+
+  function formatAmount(val, currency) {
+    if (val === null || val === undefined) return '—';
+    return new Intl.NumberFormat('en-US', {
+      style: 'currency', currency: currency || 'USD', minimumFractionDigits: 2
+    }).format(val);
+  }
+
+  function statusBadgeClass(status) {
+    if (!status) return 'badge-closed';
+    const s = status.toLowerCase();
+    if (s === 'open' || s === 'released')   return 'badge-active';
+    if (s === 'pending approval')           return 'badge-draft';
+    if (s === 'canceled' || s === 'cancelled') return 'badge-canceled';
+    return 'badge-closed';
+  }
+</script>
+</body>
+</html>
